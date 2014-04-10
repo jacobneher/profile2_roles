@@ -61,6 +61,8 @@ function profile2_roles_profile2_access($op, $profile = NULL, $account = NULL) {
       return FALSE;
     }
 
+    // If user has 'administer role profiles' permission then they can access any user's
+    // profile, as long as that user has a role that uses the profile
     if (user_access('administer role profiles')) {
       return TRUE;
     }
