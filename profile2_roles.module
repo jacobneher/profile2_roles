@@ -1,0 +1,68 @@
+<?php
+
+/**
+ * Implements hook_permission().
+ */
+function profile2_roles_permission() {
+  $permissions = array(
+    'administer role profiles' => array(
+      'title'       => t('Administer role profiles'),
+      'description' => t('Edit and view all user profiles that account is granted based on role.'),
+    ),
+  );
+
+  return $permissions;
+}
+
+/**
+ * Implements hook_form_alter().
+ */
+function profile2_roles_form_alter(&$form, &$form_state, $form_id) {
+  $profile_type = profile2_type_load(arg(4));
+
+  if ($form_id == 'profile2_type_form') {
+    $user_roles = user_roles();
+    // Remove the anonymous user since they cannot have profiles attached to them
+    unset($user_roles[1]);
+
+    $form['data']['roles'] = array(
+      '#type'          => 'checkboxes',
+      '#title'         => t('Roles'),
+      '#options'       => $user_roles,
+      '#default_value' => !empty($profile_type->data['roles']) ? $profile_type->data['roles'] : array(),
+      '#description'   => t('Check the roles that this profile is to be used for. Leaving all roles unchecked will make this profile usable on all users accounts regardless of role.'),
+    );
+
+    array_unshift($form['#submit'], 'profile2_roles_type_form_submit');
+  }
+}
+
+/**
+ * Submission handler.
+ */
+function profile2_roles_type_form_submit(&$form, &$form_state) {
+  $form_state['values']['data']['roles'] = array_filter($form_state['values']['data']['roles']);
+}
+
+/**
+ * Implements hook_profile2_access().
+ */
+function profile2_roles_profile2_access($op, $profile = NULL, $account = NULL) {
+  // Check if profile user has current profile available by role.
+  $profile_type = profile2_type_load($profile->type);
+  // If roles array is empty then the profile is to be used for all users
+  // That is the reason why we check for is not empty
+  if (isset($profile_type->data['roles']) && !empty($profile_type->data['roles'])) {
+    $account = user_load($profile->uid);
+    $profile_roles = array_keys($profile_type->data['roles']);
+    $user_roles = array_keys($account->roles);
+    $matches = array_intersect($profile_roles, $user_roles);
+    if (empty($matches)) {
+      return FALSE;
+    }
+
+    if (user_access('administer role profiles')) {
+      return TRUE;
+    }
+  }
+}

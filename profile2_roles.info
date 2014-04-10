@@ -1,0 +1,6 @@
+name = Profile2 roles
+description = Limit profile types to certain roles
+
+dependencies[] = profile2
+
+core = 7.x
